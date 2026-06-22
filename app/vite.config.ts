@@ -1,9 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { nodePolyfills } from "vite-plugin-node-polyfills";
 
-// Buffer/global polyfills are commonly needed for Solana libs in the browser.
+// Solana web3, circomlibjs (blake-hash) and snarkjs reference Node globals
+// (Buffer/process/global) at module load — polyfill them for the browser.
 export default defineConfig({
-  plugins: [react()],
-  define: { "global": "globalThis" },
-  resolve: { alias: { stream: "stream-browserify" } },
+  plugins: [
+    react(),
+    nodePolyfills({ globals: { Buffer: true, global: true, process: true } }),
+  ],
 });
