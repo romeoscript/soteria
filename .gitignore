@@ -1,0 +1,13 @@
+node_modules/
+dist/
+target/
+.anchor/
+test-ledger/
+*.zkey
+*.ptau
+*.wasm
+*.r1cs
+*.sym
+verification_key.json
+.env
+.DS_Store

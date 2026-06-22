@@ -1,0 +1,14 @@
+{
+  "name": "aegis",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Solana privacy toolkit — ZK selective disclosure, stealth receiving, confidential amounts.",
+  "workspaces": ["packages/*", "server", "app"],
+  "scripts": {
+    "build:sdk": "npm -w packages/sdk run build",
+    "dev:server": "npm -w server run dev",
+    "dev:app": "npm -w app run dev",
+    "anchor:build": "anchor build",
+    "anchor:test": "anchor test"
+  }
+}
