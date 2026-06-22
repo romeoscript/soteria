@@ -1,0 +1,47 @@
+import "dotenv/config";
+import { z } from "zod";
+
+const schema = z.object({
+  NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
+  PORT: z.coerce.number().int().positive().default(8787),
+  LOG_LEVEL: z
+    .enum(["fatal", "error", "warn", "info", "debug", "trace"])
+    .default("info"),
+
+  DATABASE_URL: z.string().url().optional(),
+
+  CORS_ORIGINS: z.string().default("*"),
+  ADMIN_API_KEY: z.string().min(16).optional(),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
+  RATE_LIMIT_MAX: z.coerce.number().int().positive().default(120),
+
+  SOLANA_RPC_URL: z.string().url().default("https://api.devnet.solana.com"),
+  SOTERIA_PROGRAM_ID: z
+    .string()
+    .default("9HNLpUVFX61pX759oy1vuMMwQaQaGnK9KgMyhTrDrRGs"),
+  RELAYER_SECRET_KEY: z.string().optional(),
+  AUTHORITY_SECRET_KEY: z.string().optional(),
+});
+
+const parsed = schema.safeParse(process.env);
+if (!parsed.success) {
+  // eslint-disable-next-line no-console
+  console.error("Invalid environment:", parsed.error.flatten().fieldErrors);
+  process.exit(1);
+}
+
+const env = parsed.data;
+
+export const config = {
+  ...env,
+  corsOrigins: env.CORS_ORIGINS === "*" ? true : env.CORS_ORIGINS.split(","),
+  isProd: env.NODE_ENV === "production",
+  capabilities: {
+    database: Boolean(env.DATABASE_URL),
+    adminAuth: Boolean(env.ADMIN_API_KEY),
+    relayer: Boolean(env.RELAYER_SECRET_KEY),
+    authority: Boolean(env.AUTHORITY_SECRET_KEY),
+  },
+};
+
+export type Config = typeof config;
