@@ -43,6 +43,18 @@ a published Merkle root, plus a scoped nullifier — without revealing the leaf.
 Use for anonymous allowlists, one-person-one-vote, credential checks. **No value
 pool**: nothing is deposited or withdrawn.
 
+On-chain model (`programs/soteria-verifier`, Semaphore-style):
+
+- **`create_group(group_id)`** — opens a `Group` PDA; the creator becomes its authority.
+- **`publish_root(root)`** — authority pushes a Merkle root into a 64-entry ring
+  buffer (recent roots stay valid so in-flight proofs survive a root update).
+- **`set_authority(new)`** — rotate the group authority.
+- **`verify_proof(a, b, c, public_inputs)`** — permissionless; checks the proof's
+  root is a known recent root, verifies the Groth16 proof over `alt_bn128`, then
+  `init`s a per-group `NullifierRecord` PDA so each nullifier can be spent once.
+  `externalNullifier`/`signalHash` are emitted in the `Disclosed` event for the
+  consuming app to match against its expected scope/signal.
+
 ```bash
 npm i -g circom snarkjs && npm i circomlib
 
