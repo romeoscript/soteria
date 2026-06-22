@@ -160,7 +160,9 @@ describe("soteria_verifier", () => {
   // credential_final.zkey) and the real VERIFYINGKEY. Once available:
   //   1. build a Poseidon set with PoseidonMerkleTree, publish_root(tree.root())
   //   2. proveCredential(...) -> { proofA, proofB, proofC, publicInputs }
-  //   3. verifyProof(...) succeeds; a replay with the same nullifier fails on init
+  //   3. verifyProof(externalNullifier, ...) succeeds; replay with the same
+  //      nullifier fails on init
   //   4. a proof against an unpublished root fails with UnknownRoot
+  //   5. a mismatched externalNullifier fails with ScopeMismatch
   it.skip("verifies a selective-disclosure proof and burns the nullifier", async () => {});
 });

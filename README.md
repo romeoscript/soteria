@@ -49,11 +49,12 @@ On-chain model (`programs/soteria-verifier`, Semaphore-style):
 - **`publish_root(root)`** — authority pushes a Merkle root into a 64-entry ring
   buffer (recent roots stay valid so in-flight proofs survive a root update).
 - **`set_authority(new)`** — rotate the group authority.
-- **`verify_proof(a, b, c, public_inputs)`** — permissionless; checks the proof's
-  root is a known recent root, verifies the Groth16 proof over `alt_bn128`, then
-  `init`s a per-group `NullifierRecord` PDA so each nullifier can be spent once.
-  `externalNullifier`/`signalHash` are emitted in the `Disclosed` event for the
-  consuming app to match against its expected scope/signal.
+- **`verify_proof(external_nullifier, a, b, c, public_inputs)`** — permissionless;
+  asserts `external_nullifier` matches the proof's scope (`ScopeMismatch` otherwise),
+  checks the proof's root is a known recent root, verifies the Groth16 proof over
+  `alt_bn128`, then `init`s a per-group `NullifierRecord` PDA so each nullifier can
+  be spent once. `signalHash` is emitted in the `Disclosed` event for the consuming
+  app to match against its expected signal.
 
 ```bash
 npm i -g circom snarkjs && npm i circomlib

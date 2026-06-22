@@ -12,6 +12,7 @@ use crate::verifying_key::VERIFYINGKEY;
 
 #[derive(Accounts)]
 #[instruction(
+    external_nullifier: [u8; 32],
     proof_a: [u8; 64],
     proof_b: [u8; 128],
     proof_c: [u8; 64],
@@ -46,11 +47,17 @@ pub struct VerifyProof<'info> {
 
 pub fn handler(
     ctx: Context<VerifyProof>,
+    external_nullifier: [u8; 32],
     proof_a: [u8; 64],
     proof_b: [u8; 128],
     proof_c: [u8; 64],
     public_inputs: [[u8; 32]; NUM_PUBLIC_INPUTS],
 ) -> Result<()> {
+    require!(
+        public_inputs[PI_EXTERNAL_NULLIFIER] == external_nullifier,
+        SoteriaError::ScopeMismatch
+    );
+
     let group = &ctx.accounts.group;
     let merkle_root = public_inputs[PI_MERKLE_ROOT];
     require!(group.is_known_root(&merkle_root), SoteriaError::UnknownRoot);

@@ -35,11 +35,19 @@ pub mod soteria_verifier {
 
     pub fn verify_proof(
         ctx: Context<VerifyProof>,
+        external_nullifier: [u8; 32],
         proof_a: [u8; 64],
         proof_b: [u8; 128],
         proof_c: [u8; 64],
         public_inputs: [[u8; 32]; NUM_PUBLIC_INPUTS],
     ) -> Result<()> {
-        instructions::verify_proof::handler(ctx, proof_a, proof_b, proof_c, public_inputs)
+        instructions::verify_proof::handler(
+            ctx,
+            external_nullifier,
+            proof_a,
+            proof_b,
+            proof_c,
+            public_inputs,
+        )
     }
 }

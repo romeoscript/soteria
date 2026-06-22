@@ -114,7 +114,9 @@ export function nullifierPda(
 
 /**
  * Account set for `verify_proof`, ordered to match the on-chain context.
- * Encode args with @coral-xyz/anchor's program.methods.verifyProof(...) IDL client.
+ * Call as verifyProof(externalNullifier, proofA, proofB, proofC, publicInputs)
+ * via @coral-xyz/anchor's IDL client; externalNullifier must equal
+ * publicInputs[PI_EXTERNAL_NULLIFIER] or the program rejects with ScopeMismatch.
  */
 export function buildVerifyAccounts(
   payer: PublicKey,

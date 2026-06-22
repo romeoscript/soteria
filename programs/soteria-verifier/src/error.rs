@@ -12,4 +12,6 @@ pub enum SoteriaError {
     ProofVerificationFailed,
     #[msg("new authority cannot be the default pubkey")]
     InvalidAuthority,
+    #[msg("proof's external nullifier does not match the expected scope")]
+    ScopeMismatch,
 }
