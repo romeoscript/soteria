@@ -10,6 +10,9 @@ mod verifying_key;
 use constants::NUM_PUBLIC_INPUTS;
 use instructions::*;
 
+#[cfg(test)]
+mod test_vectors;
+
 declare_id!("Aeg1sVeri11111111111111111111111111111111111");
 
 const _: () = assert!(
@@ -49,5 +52,29 @@ pub mod soteria_verifier {
             proof_c,
             public_inputs,
         )
+    }
+}
+
+#[cfg(test)]
+mod groth16_tests {
+    use super::test_vectors::{PROOF_A, PROOF_B, PROOF_C, PUBLIC_INPUTS};
+    use super::verifying_key::VERIFYINGKEY;
+    use groth16_solana::groth16::Groth16Verifier;
+
+    #[test]
+    fn verifies_real_proof() {
+        let mut v =
+            Groth16Verifier::new(&PROOF_A, &PROOF_B, &PROOF_C, &PUBLIC_INPUTS, &VERIFYINGKEY)
+                .unwrap();
+        assert!(v.verify().unwrap());
+    }
+
+    #[test]
+    fn rejects_tampered_public_input() {
+        let mut bad = PUBLIC_INPUTS;
+        bad[1][31] ^= 1;
+        let mut v =
+            Groth16Verifier::new(&PROOF_A, &PROOF_B, &PROOF_C, &bad, &VERIFYINGKEY).unwrap();
+        assert!(v.verify().is_err());
     }
 }

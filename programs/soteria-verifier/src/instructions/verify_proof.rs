@@ -65,9 +65,10 @@ pub fn handler(
     let mut verifier =
         Groth16Verifier::new(&proof_a, &proof_b, &proof_c, &public_inputs, &VERIFYINGKEY)
             .map_err(|_| SoteriaError::MalformedProof)?;
-    verifier
+    let verified = verifier
         .verify()
         .map_err(|_| SoteriaError::ProofVerificationFailed)?;
+    require!(verified, SoteriaError::ProofVerificationFailed);
 
     let nullifier = &mut ctx.accounts.nullifier;
     nullifier.group_id = group.group_id;

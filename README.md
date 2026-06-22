@@ -56,23 +56,21 @@ On-chain model (`programs/soteria-verifier`, Semaphore-style):
   be spent once. `signalHash` is emitted in the `Disclosed` event for the consuming
   app to match against its expected signal.
 
-```bash
-npm i -g circom snarkjs && npm i circomlib
+The whole trusted setup is scripted. It compiles the circuit, runs Powers-of-Tau
++ Phase 2, regenerates `programs/soteria-verifier/src/verifying_key.rs`, and copies
+the client artifacts (`credential.wasm`, `credential_final.zkey`) into `app/public/`:
 
-circom circuits/credential.circom --r1cs --wasm --sym -l node_modules
-snarkjs powersoftau new bn128 14 pot14_0000.ptau -v
-snarkjs powersoftau contribute pot14_0000.ptau pot14_0001.ptau --name="soteria" -v
-snarkjs powersoftau prepare phase2 pot14_0001.ptau pot14_final.ptau -v
-snarkjs groth16 setup credential.r1cs pot14_final.ptau credential_0000.zkey
-snarkjs zkey contribute credential_0000.zkey credential_final.zkey --name="soteria" -v
-snarkjs zkey export verificationkey credential_final.zkey verification_key.json
-# convert verification_key.json -> Groth16Verifyingkey constant in
-# programs/soteria-verifier/src/verifying_key.rs (use groth16-solana's vk parser)
+```bash
+npm install && bash scripts/setup.sh
 ```
 
-Runtime artifacts for the client: `credential.wasm`, `credential_final.zkey`
-(place in `app/public/`). Build-time artifact for the program: the converted
-`VERIFYINGKEY`.
+`cargo test -p soteria-verifier` then runs the converted `VERIFYINGKEY` through the
+real `groth16-solana` verifier against a sample proof, validating both the VK byte
+encoding and the proof formatting in `packages/sdk/src/zk/prover.ts`.
+
+> ⚠️ `scripts/setup.sh` is a **single-contributor (dev/staging)** ceremony — the
+> toxic waste is not multi-party-discarded. A mainnet deployment needs a real
+> multi-party Powers-of-Tau / Phase-2 ceremony before trusting `verifying_key.rs`.
 
 ## Module 2 — Stealth receiving
 
