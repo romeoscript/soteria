@@ -1,31 +1,11 @@
 import { useState } from "react";
 import { AnimatePresence, motion, MotionConfig } from "framer-motion";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { LiveGraph } from "./components/LiveGraph";
-import { AuroraText } from "./components/ui/aurora-text";
-import { Meteors } from "./components/ui/meteors";
-import { BorderBeam } from "./components/ui/border-beam";
-import { Marquee } from "./components/ui/marquee";
-import { StealthPanel } from "./components/StealthPanel";
-import { CredentialPanel } from "./components/CredentialPanel";
-import { ConfidentialPanel } from "./components/ConfidentialPanel";
+import { Landing } from "./components/Landing";
+import { Workspace } from "./components/Workspace";
 
-const TABS = [
-  { id: "credential", name: "Selective disclosure", sub: "prove membership, hide identity" },
-  { id: "stealth", name: "Stealth receiving", sub: "one-time receive addresses" },
-  { id: "confidential", name: "Confidential amounts", sub: "shielded balances" },
-] as const;
-
-const PANELS = {
-  credential: CredentialPanel,
-  stealth: StealthPanel,
-  confidential: ConfidentialPanel,
-};
-
-const CREDS = [
-  "groth16", "alt_bn128", "poseidon merkle", "scoped nullifier", "token-2022",
-  "ed25519 stealth", "ElGamal auditor", "no mixer", "no link-severing",
-];
+type View = "landing" | "app";
+type Module = "credential" | "stealth" | "confidential";
 
 function Sigil() {
   return (
@@ -39,8 +19,10 @@ function Sigil() {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("credential");
-  const Panel = PANELS[tab];
+  const [view, setView] = useState<View>(
+    () => (typeof location !== "undefined" && location.hash === "#app" ? "app" : "landing")
+  );
+  const [tab, setTab] = useState<Module>("credential");
 
   return (
     <MotionConfig reducedMotion="user">
@@ -50,104 +32,45 @@ export default function App() {
 
       <div className="wrap">
         <header className="bar">
-          <div className="brand">
+          <button className="brand" onClick={() => setView("landing")} aria-label="Home">
             <Sigil />
             <div>
               <h1>SOTERIA</h1>
               <div className="tag">privacy toolkit</div>
             </div>
-          </div>
-          <div className="bar-right">
+          </button>
+          <nav className="bar-right">
+            {view === "app" && (
+              <button className="nav-link" onClick={() => setView("landing")}>← home</button>
+            )}
             <span className="tag pill">devnet</span>
             <WalletMultiButton />
-          </div>
+          </nav>
         </header>
 
-        <section className="hero-shell">
-          <div className="meteor-field">
-            <Meteors number={26} angle={235} />
-          </div>
-          <div className="hero">
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7 }}>
-              <div className="eyebrow">Solana · no mixer · auditor-native</div>
-              <h2>
-                Hide the <AuroraText className="cipher" colors={["#b07cff", "#ff5db1", "#b07cff"]}>payload</AuroraText>.
-                <br />
-                Keep the <AuroraText colors={["#34e7cf", "#5bd1ff", "#34e7cf"]}>graph honest</AuroraText>.
-              </h2>
-              <p>
-                Three privacy primitives that protect users without pooling funds or
-                severing who-paid-whom. Every shield keeps a disclosure path.
-              </p>
-              <div className="creed">
-                <span>no mixer</span>
-                <span>no link-severing</span>
-                <span>auditor-key native</span>
-                <span>groth16 · alt_bn128</span>
-              </div>
-            </motion.div>
-
+        <AnimatePresence mode="wait">
+          {view === "landing" ? (
             <motion.div
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.9, delay: 0.15, ease: "easeOut" }}
+              key="landing"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, y: -16 }}
+              transition={{ duration: 0.4 }}
             >
-              <LiveGraph />
+              <Landing onEnter={() => setView("app")} />
             </motion.div>
-          </div>
-        </section>
-
-        <Marquee className="creds" pauseOnHover>
-          {CREDS.map((c) => (
-            <span className="cred-chip" key={c}>
-              <span className="dot" />{c}
-            </span>
-          ))}
-        </Marquee>
-
-        <section className="rail">
-          <div className="rail-head">
-            <h3>The primitives</h3>
-            <span className="count">03 / modules</span>
-          </div>
-
-          <div className="tabs">
-            {TABS.map((t, i) => (
-              <motion.button
-                key={t.id}
-                className="tab"
-                data-active={tab === t.id}
-                onClick={() => setTab(t.id)}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="glow" />
-                <span className="idx">{String(i + 1).padStart(2, "0")}</span>
-                <span className="t-name">{t.name}</span>
-                <span className="t-sub">{t.sub}</span>
-                {tab === t.id && <BorderBeam size={70} duration={5} borderWidth={1.4} />}
-              </motion.button>
-            ))}
-          </div>
-
-          <AnimatePresence mode="wait">
+          ) : (
             <motion.div
-              key={tab}
-              className="panel-shell"
+              key="app"
               initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              transition={{ duration: 0.32, ease: "easeOut" }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
             >
-              <Panel />
-              <BorderBeam size={160} duration={9} borderWidth={1.4} delay={1.5} />
+              <Workspace tab={tab} setTab={setTab} />
             </motion.div>
-          </AnimatePresence>
-        </section>
-
-        <footer className="foot">
-          <span>SOTERIA</span>
-          <span>privacy that keeps the graph honest</span>
-        </footer>
+          )}
+        </AnimatePresence>
       </div>
     </MotionConfig>
   );

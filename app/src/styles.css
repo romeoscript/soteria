@@ -204,6 +204,130 @@ body {
 }
 .wallet-adapter-button:not([disabled]):hover { background: var(--void-2) !important; border-color: var(--shield) !important; }
 
+/* ── brand button + nav ──────────────────────────────────────────────────── */
+.brand { background: none; border: none; padding: 0; cursor: pointer; text-align: left; }
+.nav-link { background: none; border: none; cursor: pointer; font-family: var(--mono); font-size: 12px; color: var(--muted); letter-spacing: 0.05em; transition: color 0.2s; }
+.nav-link:hover { color: var(--ink); }
+.mono-faint { color: var(--faint); }
+a.act { text-decoration: none; display: inline-flex; align-items: center; }
+
+/* ── landing view ────────────────────────────────────────────────────────── */
+.landing-shell { position: relative; overflow: hidden; border-radius: 26px; }
+.landing {
+  position: relative; z-index: 1; display: grid; grid-template-columns: 1.06fr 0.94fr;
+  gap: 48px; align-items: center; min-height: calc(100vh - 220px);
+}
+.landing-copy .eyebrow {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--shield); margin-bottom: 22px; display: flex; align-items: center; gap: 10px;
+}
+.landing-copy .eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--shield); }
+.landing-copy h2 {
+  font-size: clamp(42px, 6.6vw, 78px); font-weight: 600; line-height: 0.96;
+  letter-spacing: -0.03em; margin-bottom: 26px;
+}
+.landing-copy h2 .cipher { font-family: var(--mono); font-weight: 400; }
+.landing-copy p { color: var(--muted); font-size: 16.5px; max-width: 46ch; margin-bottom: 30px; }
+.cta-row { display: flex; gap: 14px; flex-wrap: wrap; }
+
+/* ── centered hero with the graph as ambient background ──────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--shield); margin-bottom: 22px; display: flex; align-items: center; gap: 10px;
+}
+.eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--shield); }
+.eyebrow.centered { justify-content: center; }
+.eyebrow.centered::after { content: ""; width: 26px; height: 1px; background: var(--shield); }
+
+.hero-full {
+  position: relative; overflow: hidden; border-radius: 26px;
+  min-height: calc(100vh - 132px); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+}
+.hero-bg { position: absolute; inset: 0; z-index: 0; }
+.hero-graph { position: absolute; inset: 0; display: grid; place-items: center; opacity: 0.6; }
+.hero-graph svg { width: 94%; height: 94%; max-height: none !important; }
+.hero-scrim {
+  position: absolute; inset: 0; pointer-events: none;
+  background:
+    radial-gradient(58% 56% at 50% 46%, rgba(7, 8, 15, 0.92), rgba(7, 8, 15, 0.5) 42%, rgba(7, 8, 15, 0.12) 72%, transparent),
+    linear-gradient(180deg, rgba(7, 8, 15, 0.7), transparent 22%, transparent 76%, var(--void));
+}
+.hero-center { position: relative; z-index: 2; max-width: 920px; padding: 0 22px; }
+.hero-center h1 {
+  font-size: clamp(46px, 8vw, 94px); font-weight: 600; line-height: 0.95;
+  letter-spacing: -0.032em; margin-bottom: 24px;
+}
+.hero-center h1 .cipher { font-family: var(--mono); font-weight: 400; }
+.hero-center p { color: var(--muted); font-size: 17px; max-width: 54ch; margin: 0 auto 32px; }
+.cta-row.centered { justify-content: center; }
+.hero-marquee { position: absolute; left: 0; right: 0; bottom: 18px; z-index: 2; }
+
+.spot-1 { top: -38%; left: -16%; }
+.spot-2 { top: -22%; left: 36%; }
+.landing-glow {
+  position: absolute; inset: 0; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(46% 50% at 20% 42%, rgba(176, 124, 255, 0.16), transparent 70%),
+    radial-gradient(42% 46% at 80% 58%, rgba(52, 231, 207, 0.14), transparent 70%);
+}
+
+/* glass "live monitor" console around the graph */
+.landing-art { perspective: 1200px; }
+.console {
+  position: relative; border-radius: 20px; overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.012));
+  border: 1px solid var(--line-2);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+  box-shadow: 0 40px 90px -34px rgba(176, 124, 255, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+}
+.console-bar {
+  display: flex; align-items: center; justify-content: space-between; padding: 13px 16px;
+  border-bottom: 1px solid var(--line); font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted);
+}
+.console-bar .live { display: inline-flex; align-items: center; gap: 8px; color: var(--honest); }
+.console-bar .live .dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--honest);
+  box-shadow: 0 0 10px var(--honest); animation: pulseDot 1.8s ease-in-out infinite;
+}
+@keyframes pulseDot { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.7); } }
+.console-body { position: relative; padding: 16px 16px 2px; }
+.console-body::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(58% 58% at 62% 42%, rgba(52, 231, 207, 0.07), transparent 70%);
+}
+.console-legend {
+  display: flex; gap: 22px; padding: 11px 16px 14px; border-top: 1px solid var(--line);
+  font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+.console-legend span { display: inline-flex; align-items: center; gap: 8px; }
+.lg-dot { width: 8px; height: 8px; border-radius: 50%; }
+.lg-dot.honest { background: var(--honest); box-shadow: 0 0 8px var(--honest); }
+.lg-dot.shield { background: var(--shield); box-shadow: 0 0 8px var(--shield); }
+
+/* ── workspace view ──────────────────────────────────────────────────────── */
+.workspace { display: grid; grid-template-columns: 300px 1fr; gap: 26px; align-items: start; margin-top: 10px; }
+.side { display: flex; flex-direction: column; gap: 12px; position: sticky; top: 28px; }
+.side-head { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; padding-left: 2px; }
+.side-item {
+  position: relative; overflow: hidden; display: grid; grid-template-columns: auto 1fr auto;
+  align-items: center; gap: 12px; text-align: left; cursor: pointer; color: var(--ink);
+  background: var(--void-2); border: 1px solid var(--line); border-radius: 14px; padding: 15px;
+  transition: border-color 0.25s, transform 0.2s, background 0.25s;
+}
+.side-item:hover { border-color: var(--line-2); transform: translateX(3px); }
+.side-item[data-active="true"] { border-color: rgba(176, 124, 255, 0.5); background: linear-gradient(100deg, rgba(176, 124, 255, 0.09), transparent 60%); }
+.side-item .idx { font-family: var(--mono); font-size: 12px; color: var(--shield); }
+.si-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.si-body .t-name { font-size: 15px; font-weight: 500; letter-spacing: -0.01em; }
+.si-body .t-sub { font-size: 11.5px; color: var(--muted); }
+.si-state { font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; }
+.si-state.live { color: var(--honest); border: 1px solid rgba(52, 231, 207, 0.3); }
+.si-state.gated { color: var(--magenta); border: 1px solid rgba(255, 93, 177, 0.3); }
+.side-foot { margin-top: 8px; font-family: var(--mono); font-size: 10.5px; color: var(--faint); letter-spacing: 0.04em; padding-left: 2px; }
+.work-main { position: relative; }
+
 /* ── motion safety ───────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   .aurora { animation: none; }
@@ -212,6 +336,10 @@ body {
 
 @media (max-width: 860px) {
   .hero { grid-template-columns: 1fr; gap: 30px; min-height: auto; }
+  .landing { grid-template-columns: 1fr; gap: 28px; min-height: auto; padding: 20px 0 8px; }
+  .landing-art { order: -1; }
+  .workspace { grid-template-columns: 1fr; }
+  .side { position: static; }
   .tabs { grid-template-columns: 1fr; }
   .wrap { padding: 22px 18px 70px; }
 }
