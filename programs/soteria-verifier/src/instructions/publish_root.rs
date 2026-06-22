@@ -15,7 +15,7 @@ pub struct PublishRoot<'info> {
         bump = group.bump,
         has_one = authority,
     )]
-    pub group: Account<'info, Group>,
+    pub group: Box<Account<'info, Group>>,
 }
 
 pub fn handler(ctx: Context<PublishRoot>, new_root: [u8; 32]) -> Result<()> {

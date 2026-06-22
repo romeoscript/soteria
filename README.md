@@ -46,7 +46,7 @@ pool**: nothing is deposited or withdrawn.
 On-chain model (`programs/soteria-verifier`, Semaphore-style):
 
 - **`create_group(group_id)`** — opens a `Group` PDA; the creator becomes its authority.
-- **`publish_root(root)`** — authority pushes a Merkle root into a 64-entry ring
+- **`publish_root(root)`** — authority pushes a Merkle root into a 32-entry ring
   buffer (recent roots stay valid so in-flight proofs survive a root update).
 - **`set_authority(new)`** — rotate the group authority.
 - **`verify_proof(external_nullifier, a, b, c, public_inputs)`** — permissionless;
@@ -67,6 +67,23 @@ npm install && bash scripts/setup.sh
 `cargo test -p soteria-verifier` then runs the converted `VERIFYINGKEY` through the
 real `groth16-solana` verifier against a sample proof, validating both the VK byte
 encoding and the proof formatting in `packages/sdk/src/zk/prover.ts`.
+
+### Build & test the program
+
+Anchor 0.30.1's IDL generator doesn't compile under current Rust toolchains
+(`anchor-syn` + the ark/proc-macro2 crates). The program `.so` builds fine, so we
+build without IDL and generate the IDL directly:
+
+```bash
+anchor build --no-idl                                   # build the .so
+node scripts/gen-idl.js > target/idl/soteria_verifier.json
+anchor test --skip-build --provider.cluster localnet    # 7 passing
+```
+
+The suite exercises group creation, root publishing, `has_one` gating, ring-buffer
+eviction, authority rotation, and the full `verify_proof` path — a real Groth16
+proof verified **on-chain** (needs a compute-unit bump above the 200k default; the
+test provisions it), with nullifier double-spend and `ScopeMismatch` both rejected.
 
 > ⚠️ `scripts/setup.sh` is a **single-contributor (dev/staging)** ceremony — the
 > toxic waste is not multi-party-discarded. A mainnet deployment needs a real

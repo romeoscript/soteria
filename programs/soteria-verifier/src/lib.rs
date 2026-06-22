@@ -13,7 +13,7 @@ use instructions::*;
 #[cfg(test)]
 mod test_vectors;
 
-declare_id!("Aeg1sVeri11111111111111111111111111111111111");
+declare_id!("9HNLpUVFX61pX759oy1vuMMwQaQaGnK9KgMyhTrDrRGs");
 
 const _: () = assert!(
     verifying_key::VERIFYINGKEY.nr_pubinputs as usize == NUM_PUBLIC_INPUTS,

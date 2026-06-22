@@ -26,7 +26,7 @@ pub struct VerifyProof<'info> {
         seeds = [GROUP_SEED, &group.group_id.to_le_bytes()],
         bump = group.bump,
     )]
-    pub group: Account<'info, Group>,
+    pub group: Box<Account<'info, Group>>,
 
     // `init` fails if this nullifier was already spent in this group.
     #[account(

@@ -15,7 +15,7 @@ pub struct SetAuthority<'info> {
         bump = group.bump,
         has_one = authority,
     )]
-    pub group: Account<'info, Group>,
+    pub group: Box<Account<'info, Group>>,
 }
 
 pub fn handler(ctx: Context<SetAuthority>, new_authority: Pubkey) -> Result<()> {

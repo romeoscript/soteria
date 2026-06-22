@@ -9,8 +9,9 @@ pub const NULLIFIER_SEED: &[u8] = b"nullifier";
 /// Merkle depth — MUST match circuits/credential.circom (`Credential(20)`).
 pub const TREE_DEPTH: u8 = 20;
 
-/// Number of recent roots accepted by `verify_proof`.
-pub const ROOT_HISTORY_SIZE: usize = 64;
+/// Number of recent roots accepted by `verify_proof`. Sized to keep the `Group`
+/// account's Borsh deserialization within the BPF 4KB stack frame limit.
+pub const ROOT_HISTORY_SIZE: usize = 32;
 
 pub const NUM_PUBLIC_INPUTS: usize = 4;
 
