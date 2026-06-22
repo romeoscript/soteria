@@ -124,6 +124,8 @@ describe("soteria_verifier", () => {
 
     const acct = await program.account.group.fetch(group);
     assert.equal(acct.rootCount.toNumber(), ROOT_HISTORY_SIZE + 1);
+    // slot 0 (first root) was overwritten by the wrap-around push
+    assert.deepEqual(acct.roots[0], root((ROOT_HISTORY_SIZE + 1) % 256));
   });
 
   it("rotates authority and locks out the old key", async () => {

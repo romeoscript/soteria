@@ -10,4 +10,6 @@ pub enum SoteriaError {
     MalformedProof,
     #[msg("zero-knowledge proof failed verification")]
     ProofVerificationFailed,
+    #[msg("new authority cannot be the default pubkey")]
+    InvalidAuthority,
 }

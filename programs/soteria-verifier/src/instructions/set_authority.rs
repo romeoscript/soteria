@@ -1,6 +1,7 @@
 use anchor_lang::prelude::*;
 
 use crate::constants::GROUP_SEED;
+use crate::error::SoteriaError;
 use crate::events::AuthorityChanged;
 use crate::state::Group;
 
@@ -18,6 +19,11 @@ pub struct SetAuthority<'info> {
 }
 
 pub fn handler(ctx: Context<SetAuthority>, new_authority: Pubkey) -> Result<()> {
+    require!(
+        new_authority != Pubkey::default(),
+        SoteriaError::InvalidAuthority
+    );
+
     let group = &mut ctx.accounts.group;
     let old_authority = group.authority;
     group.authority = new_authority;

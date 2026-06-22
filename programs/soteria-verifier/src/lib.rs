@@ -12,6 +12,11 @@ use instructions::*;
 
 declare_id!("Aeg1sVeri11111111111111111111111111111111111");
 
+const _: () = assert!(
+    verifying_key::VERIFYINGKEY.nr_pubinputs as usize == NUM_PUBLIC_INPUTS,
+    "VERIFYINGKEY public-input count must match the circuit"
+);
+
 #[program]
 pub mod soteria_verifier {
     use super::*;
