@@ -7,7 +7,7 @@ import { ConfidentialPanel } from "./ConfidentialPanel";
 const MODULES = [
   { id: "credential", name: "Selective disclosure", sub: "prove membership, hide identity", state: "live" },
   { id: "stealth", name: "Stealth receiving", sub: "one-time receive addresses", state: "live" },
-  { id: "confidential", name: "Confidential amounts", sub: "shielded balances", state: "gated" },
+  { id: "confidential", name: "Confidential amounts", sub: "shielded balances", state: "live" },
 ] as const;
 
 const PANELS = {

@@ -11,6 +11,6 @@
  * No module pools funds or breaks the sender->recipient link. Every privacy
  * feature keeps a disclosure/audit path.
  */
-export * as zk from "./zk";
-export * as stealth from "./stealth";
-export * as confidential from "./confidential";
+export * as zk from "./zk/index.js";
+export * as stealth from "./stealth/index.js";
+export * as confidential from "./confidential/index.js";

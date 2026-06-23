@@ -1,4 +1,56 @@
+import { useState } from "react";
+import { SERVER, short } from "../lib/soteria";
+
+interface DemoResult {
+  ok: boolean;
+  mint: string;
+  recipient: string;
+  recipientTokenAccount: string;
+  decimals: number;
+  amount: string;
+  onChainPublicAmount: string;
+  recipientDecrypted: string;
+  auditorElGamalPubkey: string;
+  error?: string;
+}
+
+type Status =
+  | { kind: "idle" }
+  | { kind: "busy" }
+  | { kind: "ok"; result: DemoResult }
+  | { kind: "error"; message: string };
+
+const fmt = (base: string, decimals: number) =>
+  (Number(base) / 10 ** decimals).toFixed(decimals);
+
 export function ConfidentialPanel() {
+  const [tokens, setTokens] = useState("2.50");
+  const [status, setStatus] = useState<Status>({ kind: "idle" });
+
+  async function runDemo() {
+    const amount = Math.round(parseFloat(tokens) * 100);
+    if (!Number.isFinite(amount) || amount <= 0) {
+      setStatus({ kind: "error", message: "enter a positive amount" });
+      return;
+    }
+    setStatus({ kind: "busy" });
+    try {
+      const res = await fetch(`${SERVER}/confidential/demo`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount }),
+      });
+      const data = (await res.json()) as DemoResult;
+      if (res.ok && data.ok) setStatus({ kind: "ok", result: data });
+      else setStatus({ kind: "error", message: data.error ?? "demo failed" });
+    } catch (e) {
+      setStatus({
+        kind: "error",
+        message: e instanceof Error ? e.message : "request failed",
+      });
+    }
+  }
+
   return (
     <div className="panel">
       <h3>Confidential amounts</h3>
@@ -7,21 +59,83 @@ export function ConfidentialPanel() {
         while keeping a mint-level auditor key for compliance. The transaction graph
         stays public — only the numbers are shielded.
       </p>
-      <span className="status gated">localnet only — proof program disabled on mainnet</span>
+      <span className="status">devnet · live</span>
 
-      <div className="readout" style={{ marginTop: 18 }}>
-        <div><span className="k">flow </span>public balance
-          <span className="k"> → </span>confidential pending
-          <span className="k"> → </span>available
-          <span className="k"> → </span><span className="shielded">confidential transfer</span></div>
-        <div style={{ marginTop: 8 }}><span className="k">auditor </span><span className="ok">ElGamal key set at mint level</span></div>
+      <div className="row" style={{ marginTop: 18 }}>
+        <div className="field">
+          <label>transfer amount (tokens)</label>
+          <input
+            value={tokens}
+            onChange={(e) => setTokens(e.target.value)}
+            inputMode="decimal"
+          />
+        </div>
+      </div>
+      <div className="row">
+        <button className="act" onClick={runDemo} disabled={status.kind === "busy"}>
+          {status.kind === "busy"
+            ? "Running on devnet… (~30s)"
+            : "Run confidential transfer"}
+        </button>
       </div>
 
+      <div className="readout" style={{ marginTop: 14 }}>
+        <div>
+          <span className="k">flow </span>mint
+          <span className="k"> → </span>deposit
+          <span className="k"> → </span>apply
+          <span className="k"> → </span>
+          <span className="shielded">confidential transfer</span>
+          <span className="k"> → </span>withdraw
+        </div>
+        <div style={{ marginTop: 8 }}>
+          <span className="k">auditor </span>
+          <span className="ok">ElGamal key set at mint level</span>
+        </div>
+      </div>
+
+      {status.kind === "ok" && (
+        <div className="readout ok" style={{ marginTop: 10 }}>
+          <div>
+            <span className="k">on-chain amount </span>
+            <span className="shielded">
+              {fmt(status.result.onChainPublicAmount, status.result.decimals)} · hidden
+            </span>
+          </div>
+          <div>
+            <span className="k">recipient decrypts </span>
+            <span className="ok">
+              {fmt(status.result.recipientDecrypted, status.result.decimals)} tokens
+            </span>
+          </div>
+          <div>
+            <span className="k">mint </span>
+            <a
+              href={`https://explorer.solana.com/address/${status.result.mint}?cluster=devnet`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              {short(status.result.mint)}
+            </a>
+          </div>
+          <div>
+            <span className="k">recipient </span>
+            {short(status.result.recipient)}
+          </div>
+        </div>
+      )}
+      {status.kind === "error" && (
+        <div className="readout" style={{ marginTop: 10 }}>
+          <span className="k">error </span>
+          {status.message}
+        </div>
+      )}
+
       <p className="hint">
-        Run a local validator cloning the mainnet Token Extension program, then use
-        confidential.createConfidentialMint(...) with an auditor ElGamal key. The
-        transfer/withdraw steps are proof-gated until Solana re-enables the ZK
-        ElGamal Proof program.
+        The operator relays a full Token-2022 confidential transfer on devnet: the
+        amount is encrypted on-chain (twisted ElGamal) and verified with ZK proofs,
+        yet the recipient decrypts the exact value. Account keys are derived from the
+        owner's signature, so they're recoverable and never stored.
       </p>
     </div>
   );

@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@coral-xyz/anchor": "0.30.1",
+    "@noble/curves": "^1.9.7",
+    "@solana/kit": "^6.10.0",
     "@solana/web3.js": "^1.95.4",
     "@soteria/sdk": "*",
     "bs58": "^6.0.0",

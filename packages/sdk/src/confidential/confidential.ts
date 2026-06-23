@@ -21,6 +21,7 @@ import {
   createTransactionPlanExecutor,
   createTransactionPlanner,
   getAddressDecoder,
+  getAddressEncoder,
   getBase64EncodedWireTransaction,
   getSignatureFromTransaction,
   pipe,
@@ -56,6 +57,45 @@ export { AeKey, ElGamalKeypair };
 /** Encode a 32-byte ElGamal public key as a base58 Address. */
 export function elGamalPubkeyToAddress(keypair: ElGamalKeypair): Address {
   return getAddressDecoder().decode(keypair.pubkey().toBytes());
+}
+
+/** Signs an arbitrary message and returns a 64-byte ed25519 signature. */
+export type SignMessage = (
+  message: Uint8Array
+) => Promise<Uint8Array> | Uint8Array;
+
+export interface AccountKeys {
+  elgamalKeypair: ElGamalKeypair;
+  aesKey: AeKey;
+}
+
+/**
+ * Deterministically derive an account's confidential keys from the owner's
+ * signature over a domain-separated message, bound to `(owner, mint)`.
+ *
+ * The same `(sign, owner, mint)` always yields the same keys, so an owner can
+ * recover them from their wallet alone — nothing secret is ever stored or
+ * transmitted, and the binding prevents key reuse across mints. In the browser,
+ * pass a wallet adapter's `signMessage`; on a server, sign with the owner's
+ * ed25519 secret key.
+ */
+export async function deriveAccountKeys(params: {
+  sign: SignMessage;
+  owner: Address;
+  mint: Address;
+}): Promise<AccountKeys> {
+  const encode = getAddressEncoder();
+  const seed = new Uint8Array([
+    ...encode.encode(params.owner),
+    ...encode.encode(params.mint),
+  ]);
+  const elgamalKeypair = ElGamalKeypair.fromSignature(
+    await params.sign(Uint8Array.from(ElGamalKeypair.signerMessage(seed)))
+  );
+  const aesKey = AeKey.fromSignature(
+    await params.sign(Uint8Array.from(AeKey.signerMessage(seed)))
+  );
+  return { elgamalKeypair, aesKey };
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));

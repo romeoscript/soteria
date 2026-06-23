@@ -13,6 +13,7 @@ import { announcementRoutes } from "./routes/announcements.js";
 import { setRoutes } from "./routes/sets.js";
 import { groupRoutes } from "./routes/groups.js";
 import { relayRoutes } from "./routes/relay.js";
+import { confidentialRoutes } from "./routes/confidential.js";
 
 export interface AppDeps {
   repos: Repositories;
@@ -41,6 +42,7 @@ export function createApp(deps: AppDeps): Express {
   app.use(setRoutes(deps));
   app.use(groupRoutes(deps));
   app.use(relayRoutes(deps));
+  app.use(confidentialRoutes(deps));
 
   app.use(notFound);
   app.use(errorHandler);
