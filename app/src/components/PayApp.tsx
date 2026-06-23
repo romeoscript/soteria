@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
 import { QRCodeSVG } from "qrcode.react";
@@ -19,6 +19,13 @@ type Mode = "receive" | "send";
 
 const payParam = () =>
   typeof location !== "undefined" ? new URLSearchParams(location.search).get("pay") : null;
+
+type FeedItem = {
+  payment: DetectedPayment;
+  status: "received" | "sweeping" | "swept" | "failed";
+  sig?: string;
+  error?: string;
+};
 
 export function PayApp() {
   const initialMode: Mode = payParam() ? "send" : "receive";
@@ -54,8 +61,14 @@ function Receive() {
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [payments, setPayments] = useState<DetectedPayment[] | null>(null);
-  const [swept, setSwept] = useState<Record<string, string>>({});
+  const [autoSweep, setAutoSweep] = useState(true);
+  const [feed, setFeed] = useState<FeedItem[]>([]);
+  const [watching, setWatching] = useState(false);
+
+  const autoSweepRef = useRef(autoSweep);
+  autoSweepRef.current = autoSweep;
+  const seen = useRef<Set<string>>(new Set());
+  const inFlight = useRef<Set<string>>(new Set());
 
   const link = useMemo(() => (keys ? payLink(keys.meta) : ""), [keys]);
 
@@ -76,32 +89,62 @@ function Receive() {
     }
   }
 
-  async function refresh() {
-    if (!keys) return;
-    setError(null);
-    setBusy("Scanning the registry for payments…");
+  const patch = (address: string, p: Partial<FeedItem>) =>
+    setFeed((f) => f.map((it) => (it.payment.address === address ? { ...it, ...p } : it)));
+
+  async function sweepOne(payment: DetectedPayment) {
+    if (!publicKey || inFlight.current.has(payment.address)) return;
+    inFlight.current.add(payment.address);
+    patch(payment.address, { status: "sweeping", error: undefined });
     try {
-      setPayments(await scanPayments({ connection, keys }));
+      const sig = await sweep({ connection, payment, destination: publicKey });
+      patch(payment.address, { status: "swept", sig });
     } catch (e) {
-      setError(e instanceof Error ? e.message : "scan failed");
+      patch(payment.address, {
+        status: "failed",
+        error: e instanceof Error ? e.message : "sweep failed",
+      });
     } finally {
-      setBusy(null);
+      inFlight.current.delete(payment.address);
     }
   }
 
-  async function claim(p: DetectedPayment) {
-    if (!publicKey) return;
-    setError(null);
-    setBusy("Sweeping to your wallet…");
-    try {
-      const sig = await sweep({ connection, payment: p, destination: publicKey });
-      setSwept((s) => ({ ...s, [p.address]: sig }));
-      await refresh();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "sweep failed");
-    } finally {
-      setBusy(null);
-    }
+  // Live: watch the registry and sweep payments the moment they land.
+  useEffect(() => {
+    if (!keys || !publicKey) return;
+    let alive = true;
+    setWatching(true);
+    const tick = async () => {
+      let found;
+      try {
+        found = await scanPayments({ connection, keys });
+      } catch {
+        return; // transient RPC/registry blip — the next tick retries
+      }
+      if (!alive) return;
+      for (const p of found) {
+        if (seen.current.has(p.address)) continue;
+        seen.current.add(p.address);
+        setFeed((f) => [
+          { payment: p, status: autoSweepRef.current ? "sweeping" : "received" },
+          ...f,
+        ]);
+        if (autoSweepRef.current) sweepOne(p);
+      }
+    };
+    tick();
+    const id = setInterval(tick, 9000);
+    return () => {
+      alive = false;
+      clearInterval(id);
+      setWatching(false);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [keys, publicKey, connection]);
+
+  function enableAutoSweep(on: boolean) {
+    setAutoSweep(on);
+    if (on) feed.forEach((it) => it.status === "received" && sweepOne(it.payment));
   }
 
   if (!publicKey) {
@@ -147,42 +190,57 @@ function Receive() {
             </div>
           </div>
 
-          <div className="row" style={{ marginTop: 18 }}>
-            <button className="act" onClick={refresh} disabled={!!busy}>
-              {busy ?? "Check for payments"}
-            </button>
+          <div className="watchbar" style={{ marginTop: 18 }}>
+            <span className={`live ${watching ? "on" : ""}`}>
+              <span className="pulse" />
+              {watching ? "Watching for payments" : "Idle"}
+            </span>
+            <label className="toggle">
+              <input
+                type="checkbox"
+                checked={autoSweep}
+                onChange={(e) => enableAutoSweep(e.target.checked)}
+              />
+              Auto-sweep to my wallet
+            </label>
           </div>
 
-          {payments && (
-            <div className="readout" style={{ marginTop: 12 }}>
-              {payments.length === 0 ? (
-                <div><span className="k">incoming </span>none yet — share your link</div>
-              ) : (
-                payments.map((p) => (
-                  <div key={p.address} className="payrow">
-                    <span className="shielded">{fmtSol(p.lamports)} SOL</span>
-                    <span className="k"> at </span>{short(p.address)}
-                    {swept[p.address] ? (
+          <div className="readout feed">
+            {feed.length === 0 ? (
+              <div><span className="k">incoming </span>nothing yet — share your link to get paid</div>
+            ) : (
+              feed.map((it) => (
+                <div key={it.payment.address} className="payrow">
+                  <span className="shielded">{fmtSol(it.payment.lamports)} SOL</span>
+                  <span className="k"> · {short(it.payment.address)}</span>
+                  <span className="pay-status">
+                    {it.status === "received" && (
+                      <button className="mini" onClick={() => sweepOne(it.payment)}>sweep</button>
+                    )}
+                    {it.status === "sweeping" && <span className="k">arriving…</span>}
+                    {it.status === "swept" && (
                       <a
                         className="ok"
-                        href={`https://explorer.solana.com/tx/${swept[p.address]}?cluster=devnet`}
+                        href={`https://explorer.solana.com/tx/${it.sig}?cluster=devnet`}
                         target="_blank" rel="noreferrer"
-                      > swept ↗</a>
-                    ) : (
-                      <button className="mini" onClick={() => claim(p)} disabled={!!busy}>sweep to wallet</button>
+                      >arrived ↗</a>
                     )}
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+                    {it.status === "failed" && (
+                      <button className="mini" onClick={() => sweepOne(it.payment)} title={it.error}>retry</button>
+                    )}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
         </>
       )}
       {error && <div className="readout" style={{ marginTop: 10 }}><span className="k">error </span>{error}</div>}
       <p className="hint">
-        Each payment lands at a fresh one-time address derived from your link. An
-        observer can't tie those addresses to each other or to your wallet. Sweeping
-        moves the funds to your connected wallet, signed with the one-time key.
+        Each payment lands at a fresh one-time address only you can detect. With
+        auto-sweep on, funds move to your wallet the moment they arrive — no action
+        needed while this page is open. Turn it off to keep funds at their one-time
+        addresses for stronger privacy and sweep on your own schedule.
       </p>
     </div>
   );

@@ -454,3 +454,25 @@ a.act { text-decoration: none; display: inline-flex; align-items: center; }
   .lp-hero { min-height: 72vh; }
   .lp-steps { grid-template-columns: 1fr; }
 }
+
+/* ── payments: live watcher + auto-sweep ──────────────────────────── */
+.watchbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
+.live {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--faint);
+}
+.live .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+.live.on { color: var(--honest); }
+.live.on .pulse { background: var(--honest); box-shadow: 0 0 0 0 rgba(52,231,207,0.5); animation: pulse 1.8s ease-out infinite; }
+@keyframes pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(52,231,207,0.5); }
+  70%  { box-shadow: 0 0 0 7px rgba(52,231,207,0); }
+  100% { box-shadow: 0 0 0 0 rgba(52,231,207,0); }
+}
+.toggle {
+  display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
+  font-size: 12.5px; color: var(--muted); user-select: none;
+}
+.toggle input { accent-color: var(--honest); width: 15px; height: 15px; cursor: pointer; }
+.feed { margin-top: 12px; }
+.feed .pay-status { margin-left: auto; display: inline-flex; align-items: center; }
