@@ -1,10 +1,13 @@
-import { PublicKey, SystemProgram } from "@solana/web3.js";
+import { PublicKey, SystemProgram, TransactionInstruction } from "@solana/web3.js";
 import { toBytes32 } from "./note";
 import type { FormattedProof } from "./prover";
 
 export const POOL_PROGRAM_ID = new PublicKey(
   "9HNLpUVFX61pX759oy1vuMMwQaQaGnK9KgMyhTrDrRGs"
 );
+
+// sha256("global:deposit")[0..8] — the Anchor instruction discriminator.
+const DEPOSIT_DISCRIMINATOR = new Uint8Array([242, 35, 198, 137, 82, 225, 242, 182]);
 
 function u64le(n: bigint | number): Buffer {
   const b = Buffer.alloc(8);
@@ -84,6 +87,27 @@ export function buildDepositAccounts(
       SYS,
     ],
   };
+}
+
+/**
+ * Full `deposit(commitment)` instruction, signed client-side by the depositor.
+ * Build a transaction with this and send it through the wallet — the SDK has no
+ * Anchor dependency, so the discriminator is encoded directly.
+ */
+export function depositInstruction(
+  depositor: PublicKey,
+  poolId: bigint | number,
+  commitment: bigint
+): TransactionInstruction {
+  const { keys } = buildDepositAccounts(depositor, poolId, commitment);
+  const data = new Uint8Array(8 + 32);
+  data.set(DEPOSIT_DISCRIMINATOR, 0);
+  data.set(toBytes32(commitment), 8);
+  return new TransactionInstruction({
+    programId: POOL_PROGRAM_ID,
+    keys,
+    data: Buffer.from(data),
+  });
 }
 
 /** Accounts for `publish_pool_root` / `set_association_root` (authority only). */

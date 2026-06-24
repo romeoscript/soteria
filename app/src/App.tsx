@@ -5,8 +5,9 @@ import { Landing } from "./components/Landing";
 import { Workspace } from "./components/Workspace";
 import { PayApp } from "./components/PayApp";
 import { History } from "./components/History";
+import { PoolPanel } from "./components/PoolPanel";
 
-type View = "landing" | "app" | "pay" | "history";
+type View = "landing" | "app" | "pay" | "history" | "pool";
 type Module = "credential" | "stealth" | "confidential";
 
 function initialView(): View {
@@ -14,6 +15,7 @@ function initialView(): View {
   const params = new URLSearchParams(location.search);
   if (params.get("pay") !== null || location.hash === "#pay") return "pay";
   if (location.hash === "#history") return "history";
+  if (location.hash === "#pool") return "pool";
   if (location.hash === "#app") return "app";
   return "landing";
 }
@@ -51,6 +53,9 @@ export default function App() {
           <nav className="bar-right">
             {view !== "pay" && (
               <button className="nav-link" onClick={() => setView("pay")}>payments</button>
+            )}
+            {view !== "pool" && (
+              <button className="nav-link" onClick={() => setView("pool")}>pool</button>
             )}
             {view !== "history" && (
               <button className="nav-link" onClick={() => setView("history")}>history</button>
@@ -93,6 +98,18 @@ export default function App() {
               transition={{ duration: 0.4, ease: "easeOut" }}
             >
               <History onPay={() => setView("pay")} />
+            </motion.div>
+          ) : view === "pool" ? (
+            <motion.div
+              key="pool"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
+            >
+              <section className="pay">
+                <PoolPanel />
+              </section>
             </motion.div>
           ) : (
             <motion.div
