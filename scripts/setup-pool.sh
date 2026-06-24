@@ -21,15 +21,15 @@ ENTROPY2="$(head -c 64 /dev/urandom | base64)"
 echo "==> compiling withdraw circuit"
 circom circuits/withdraw.circom --r1cs --wasm --sym -l node_modules -o "$BUILD"
 
-# The withdraw circuit has two Merkle inclusions (deposit + association) so it is
-# larger than credential.circom; bump Powers-of-Tau to 2^16.
-echo "==> powers of tau (bn128, 2^16)"
-$SNARKJS powersoftau new bn128 16 "$BUILD/pot16_0000.ptau" -v
-$SNARKJS powersoftau contribute "$BUILD/pot16_0000.ptau" "$BUILD/pot16_0001.ptau" --name="soteria-pool-1" -v -e="$ENTROPY1"
-$SNARKJS powersoftau prepare phase2 "$BUILD/pot16_0001.ptau" "$BUILD/pot16_final.ptau" -v
+# The withdraw circuit has two Merkle inclusions (deposit + association) — about
+# 22k constraints — so it needs 2^15 Powers-of-Tau (credential.circom used 2^14).
+echo "==> powers of tau (bn128, 2^15)"
+$SNARKJS powersoftau new bn128 15 "$BUILD/pot15_0000.ptau" -v
+$SNARKJS powersoftau contribute "$BUILD/pot15_0000.ptau" "$BUILD/pot15_0001.ptau" --name="soteria-pool-1" -v -e="$ENTROPY1"
+$SNARKJS powersoftau prepare phase2 "$BUILD/pot15_0001.ptau" "$BUILD/pot15_final.ptau" -v
 
 echo "==> phase 2 (groth16)"
-$SNARKJS groth16 setup "$BUILD/withdraw.r1cs" "$BUILD/pot16_final.ptau" "$BUILD/withdraw_0000.zkey"
+$SNARKJS groth16 setup "$BUILD/withdraw.r1cs" "$BUILD/pot15_final.ptau" "$BUILD/withdraw_0000.zkey"
 $SNARKJS zkey contribute "$BUILD/withdraw_0000.zkey" "$BUILD/withdraw_final.zkey" --name="soteria-pool-1" -v -e="$ENTROPY2"
 $SNARKJS zkey export verificationkey "$BUILD/withdraw_final.zkey" "$BUILD/verification_key_pool.json"
 

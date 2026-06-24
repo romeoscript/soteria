@@ -6,6 +6,8 @@
 .DS_Store
 .anchor/
 .env
+.env.local
+*.env.local
 Cargo.lock
 circuits/build/
 dist/
