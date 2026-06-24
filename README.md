@@ -1,15 +1,17 @@
 # Soteria — Solana Privacy Toolkit
 
-Privacy primitives for Solana that protect users **without breaking the
-sender↔recipient transaction graph**. No mixing pools, no deposit/withdraw that
-severs the link between funds. Every module keeps an auditor / disclosure path.
+Privacy primitives for Solana. The first three modules protect users **without
+breaking the sender↔recipient transaction graph**. The fourth — a *compliant
+privacy pool* — does sever the deposit↔withdrawal link, but gated by an
+association set and an auditor disclosure path rather than as an unconditional
+tumbler. Every module keeps an auditor / disclosure path.
 
 ```
-contract  →  programs/soteria-verifier (Anchor: on-chain Groth16 verifier + nullifier registry)
-sdk       →  packages/sdk              (TypeScript client: zk · stealth · confidential)
-backend   →  server                    (Express: announcement registry · member sets · proof relay)
-frontend  →  app                       (Vite + React: try all three primitives)
-circuit   →  circuits/credential.circom (Circom selective-disclosure circuit)
+contract  →  programs/soteria-verifier (Anchor: on-chain Groth16 verifier + nullifier registry + pool)
+sdk       →  packages/sdk              (TypeScript client: zk · stealth · confidential · pool)
+backend   →  server                    (Express: announcement registry · member sets · proof relay · pool operator)
+frontend  →  app                       (Vite + React: try every primitive)
+circuit   →  circuits/credential.circom · circuits/withdraw.circom (Circom)
 ```
 
 ## Modules & status
@@ -19,6 +21,7 @@ circuit   →  circuits/credential.circom (Circom selective-disclosure circuit)
 | **ZK selective disclosure** | Prove set membership / eligibility without revealing which identity. | ✅ uses `alt_bn128` syscalls |
 | **Stealth receiving** | One-time receive addresses so a main wallet isn't exposed. | ✅ client crypto + announcement registry |
 | **Confidential amounts** | Hide transfer amounts via Token-2022, with a mint-level auditor key. | ⚠️ localnet — Solana's ZK ElGamal Proof program is disabled pending audit |
+| **Compliant privacy pool** | ZK deposit/withdraw that severs the on-chain link, gated by an association set + auditor root. | ⚠️ scaffold — needs `setup-pool.sh` (real MPC ceremony for mainnet) |
 
 ## Quick start
 
@@ -110,11 +113,55 @@ solana-test-validator -r \
   --url https://api.mainnet.solana.com
 ```
 
+## Module 4 — Compliant privacy pool (path C)
+
+`programs/soteria-verifier` (pool instructions) · `packages/sdk/src/pool` ·
+`server/src/routes/pool.ts` · `app/src/components/PoolPanel.tsx` ·
+`circuits/withdraw.circom`.
+
+A fixed-denomination shielded pool. A deposit locks one denomination into a vault
+and inserts a note commitment `Poseidon(nullifier, secret)` into a Merkle tree. A
+withdrawal proves — in zero knowledge — that the note is a leaf in **both** the
+deposit tree and a curated **association set**, reveals a one-time
+`nullifierHash` to prevent double-spend, and pays a fresh recipient. The
+on-chain link between deposit and withdrawal is severed; the association set +
+auditor root are what keep it a *compliant* pool rather than an unconditional
+tumbler (the Elusiv / Privacy-Pools model).
+
+```bash
+bash scripts/setup-pool.sh     # trusted setup -> verifying_key_pool.rs + app/public/withdraw.{wasm,zkey}
+```
+
+Flow:
+
+- **`init_pool(pool_id, denomination)`** — authority opens a pool + vault PDA.
+- **`deposit(commitment)`** — locks one denomination; anchors a `Commitment` PDA
+  so the operator can order deposits into the tree but cannot fabricate notes.
+- **`publish_pool_root` / `set_association_root`** — the operator maintains the
+  trees off-chain (v1) and publishes roots; recent deposit roots ring-buffer so
+  in-flight proofs survive updates.
+- **`withdraw(proof, public_inputs, fee)`** — verifies the Groth16 proof over
+  `alt_bn128`, checks the deposit root is recent + the association root matches +
+  the recipient/fee bindings, burns the nullifier, and pays
+  `denomination − fee` to the recipient and `fee` to the relayer (so the
+  withdrawer's own wallet never appears on-chain).
+
+> ⚠️ **v1 trust model:** the deposit/association trees are maintained by the pool
+> operator, which is trusted for liveness and correct tree-building (not for
+> custody — proofs gate every payout, and `Commitment` PDAs prevent forged
+> notes). A fully trustless on-chain incremental Merkle tree is the v2 follow-on.
+> `verifying_key_pool.rs` ships as a zero-filled placeholder until
+> `setup-pool.sh` is run, and that single-contributor setup needs a real
+> multi-party ceremony before mainnet.
+
 ## What this is not
 
-Soteria deliberately omits any feature whose function is to pool deposits and let
-them be withdrawn with the on-chain link severed. That design (a tumbler) is what
-carries money-transmitter / laundering exposure; it is out of scope by choice.
+Soteria's privacy pool keeps a compliance gate (an association set the operator
+curates) and an auditor disclosure root. It deliberately does **not** ship an
+*unconditional* tumbler — a pool that severs the link for arbitrary deposits with
+no association/disclosure path. That distinction is what separates a compliant
+privacy pool from the money-transmitter / laundering exposure that sanctioned
+mixers carry.
 
 ## Build/run notes
 

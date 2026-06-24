@@ -10,6 +10,9 @@
     "build": "npm run build:sdk && npm run build:app",
     "dev:server": "npm -w server run dev",
     "dev:app": "npm -w app run dev",
+    "setup": "bash scripts/setup.sh",
+    "setup:pool": "bash scripts/setup-pool.sh",
+    "gen:idl": "node scripts/gen-idl.js > target/idl/soteria_verifier.json && node scripts/gen-idl.js > server/src/idl/soteria_verifier.json",
     "anchor:build": "anchor build",
     "anchor:test": "anchor test"
   },
