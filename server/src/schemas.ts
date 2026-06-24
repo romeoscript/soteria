@@ -41,5 +41,39 @@ export const relayVerifyBody = z.object({
   publicSignals: z.array(decimal).length(4),
 });
 
+// ── Privacy pool (path C) ──
+
+const pubkey = z.string().regex(/^[1-9A-HJ-NP-Za-km-z]{32,44}$/, "must be a base58 pubkey");
+
+export const poolIdParam = z.object({
+  id: z.coerce.number().int().nonnegative(),
+});
+
+export const createPoolBody = z.object({
+  poolId: z.coerce.number().int().nonnegative(),
+  denomination: decimal, // lamports
+});
+
+export const addCommitmentBody = z.object({ commitment: decimal });
+
+export const setAssociationBody = z.object({
+  // Curated subset of deposited commitments. Omit/empty => non-gated pool
+  // (association set = every deposit).
+  commitments: z.array(decimal).max(1_000_000).optional(),
+});
+
+export const poolWithdrawBody = z.object({
+  recipient: pubkey,
+  fee: decimal, // lamports, must match the proof's fee binding
+  proof: z.object({
+    pi_a: z.array(decimal).length(3),
+    pi_b: z.array(z.array(decimal).length(2)).length(3),
+    pi_c: z.array(decimal).length(3),
+  }),
+  // [nullifierHash, depositRoot, associationRoot, recipientHi, recipientLo, fee]
+  publicSignals: z.array(decimal).length(6),
+});
+
 export type AnnounceBody = z.infer<typeof announceBody>;
 export type RelayVerifyBody = z.infer<typeof relayVerifyBody>;
+export type PoolWithdrawBody = z.infer<typeof poolWithdrawBody>;

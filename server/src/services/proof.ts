@@ -52,3 +52,37 @@ export function formatProof(proof: SnarkProof, publicSignals: string[]): Formatt
     externalNullifier: publicInputs[2],
   };
 }
+
+export interface FormattedPoolProof {
+  proofA: number[];
+  proofB: number[];
+  proofC: number[];
+  publicInputs: number[][]; // 6
+  nullifierHash: number[];
+  depositRoot: number[];
+  associationRoot: number[];
+}
+
+// circuits/withdraw.circom public-signal order:
+//   [nullifierHash, depositRoot, associationRoot, recipientHi, recipientLo, fee]
+export function formatPoolProof(
+  proof: SnarkProof,
+  publicSignals: string[]
+): FormattedPoolProof {
+  const proofA = [...be32(proof.pi_a[0]), ...be32(neg(proof.pi_a[1]))];
+  const proofB = [
+    ...be32(proof.pi_b[0][1]), ...be32(proof.pi_b[0][0]),
+    ...be32(proof.pi_b[1][1]), ...be32(proof.pi_b[1][0]),
+  ];
+  const proofC = [...be32(proof.pi_c[0]), ...be32(proof.pi_c[1])];
+  const publicInputs = publicSignals.map((s) => be32(s));
+  return {
+    proofA,
+    proofB,
+    proofC,
+    publicInputs,
+    nullifierHash: publicInputs[0],
+    depositRoot: publicInputs[1],
+    associationRoot: publicInputs[2],
+  };
+}
