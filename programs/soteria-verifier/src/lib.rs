@@ -6,8 +6,9 @@ pub mod events;
 pub mod instructions;
 pub mod state;
 mod verifying_key;
+mod verifying_key_pool;
 
-use constants::NUM_PUBLIC_INPUTS;
+use constants::{NUM_PUBLIC_INPUTS, POOL_NUM_PUBLIC_INPUTS};
 use instructions::*;
 
 #[cfg(test)]
@@ -18,6 +19,11 @@ declare_id!("9HNLpUVFX61pX759oy1vuMMwQaQaGnK9KgMyhTrDrRGs");
 const _: () = assert!(
     verifying_key::VERIFYINGKEY.nr_pubinputs as usize == NUM_PUBLIC_INPUTS,
     "VERIFYINGKEY public-input count must match the circuit"
+);
+
+const _: () = assert!(
+    verifying_key_pool::VERIFYINGKEY_POOL.nr_pubinputs as usize == POOL_NUM_PUBLIC_INPUTS,
+    "VERIFYINGKEY_POOL public-input count must match circuits/withdraw.circom"
 );
 
 #[program]
@@ -52,6 +58,38 @@ pub mod soteria_verifier {
             proof_c,
             public_inputs,
         )
+    }
+
+    // ── Privacy pool (path C) ──
+
+    pub fn init_pool(ctx: Context<InitPool>, pool_id: u64, denomination: u64) -> Result<()> {
+        instructions::init_pool::handler(ctx, pool_id, denomination)
+    }
+
+    pub fn deposit(ctx: Context<Deposit>, commitment: [u8; 32]) -> Result<()> {
+        instructions::deposit::handler(ctx, commitment)
+    }
+
+    pub fn publish_pool_root(ctx: Context<UpdatePoolRoot>, new_root: [u8; 32]) -> Result<()> {
+        instructions::publish_pool_root::publish_pool_root(ctx, new_root)
+    }
+
+    pub fn set_association_root(
+        ctx: Context<UpdatePoolRoot>,
+        association_root: [u8; 32],
+    ) -> Result<()> {
+        instructions::publish_pool_root::set_association_root(ctx, association_root)
+    }
+
+    pub fn withdraw(
+        ctx: Context<Withdraw>,
+        proof_a: [u8; 64],
+        proof_b: [u8; 128],
+        proof_c: [u8; 64],
+        public_inputs: [[u8; 32]; POOL_NUM_PUBLIC_INPUTS],
+        fee: u64,
+    ) -> Result<()> {
+        instructions::withdraw::handler(ctx, proof_a, proof_b, proof_c, public_inputs, fee)
     }
 }
 

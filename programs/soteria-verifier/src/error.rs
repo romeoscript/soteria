@@ -14,4 +14,16 @@ pub enum SoteriaError {
     InvalidAuthority,
     #[msg("proof's external nullifier does not match the expected scope")]
     ScopeMismatch,
+
+    // ── Privacy pool ──
+    #[msg("association root does not match the pool's curated set")]
+    UnknownAssociationRoot,
+    #[msg("proof's recipient binding does not match the recipient account")]
+    RecipientMismatch,
+    #[msg("proof's fee binding does not match the fee argument")]
+    FeeMismatch,
+    #[msg("fee exceeds the pool denomination")]
+    FeeTooHigh,
+    #[msg("pool denomination must be non-zero")]
+    ZeroDenomination,
 }
