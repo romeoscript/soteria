@@ -1,9 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "npm install && npm run build:sdk && npm -w @soteria/app run build",
-  "outputDirectory": "app/dist",
-  "framework": null,
-  "rewrites": [
-    { "source": "/((?!assets/|.*\\.).*)", "destination": "/index.html" }
-  ]
-}
