@@ -30,9 +30,36 @@ interface ShieldedState {
 
 const nfKey = (bytes: number[]) => bytes.join(",");
 
-export function shieldedRoutes({ solana }: AppDeps): Router {
+export function shieldedRoutes({ repos, solana }: AppDeps): Router {
   const r = Router();
   const pools = new Map<number, ShieldedState>();
+
+  // Rebuild the in-memory state for one pool from persisted records.
+  async function buildState(id: number): Promise<ShieldedState | null> {
+    const { records, nullifiers } = await repos.shielded.load(id);
+    if (records.length === 0 && solana && !(await solana.shieldedExists(id))) {
+      return null;
+    }
+    const sorted = [...records].sort((a, b) => a.leafIndex - b.leafIndex);
+    const commitments = sorted.map((x) => x.commitment);
+    const state: ShieldedState = {
+      commitments,
+      records: sorted.map((x) => ({ commitment: x.commitment, encryptedSecret: x.encryptedSecret, leafIndex: x.leafIndex })),
+      spentNullifiers: nullifiers,
+      root: commitments.length ? await computeRoot(commitments) : null,
+    };
+    pools.set(id, state);
+    return state;
+  }
+
+  // Rehydrate every persisted pool on startup so a restart loses nothing.
+  repos.shielded
+    .listIds()
+    .then(async (ids) => {
+      for (const id of ids) await buildState(id);
+      logger.info({ pools: ids.length }, "rehydrated shielded pools from storage");
+    })
+    .catch((err) => logger.warn({ err: String(err) }, "shielded rehydrate failed"));
 
   const requireAuthority = () => {
     if (!solana || !solana.canPublishRoot) {
@@ -40,10 +67,12 @@ export function shieldedRoutes({ solana }: AppDeps): Router {
     }
     return solana;
   };
-  const requirePool = (id: number): ShieldedState => {
-    const p = pools.get(id);
-    if (!p) throw new AppError(404, "shielded pool not found", "not_found");
-    return p;
+  const getPool = async (id: number): Promise<ShieldedState> => {
+    const cached = pools.get(id);
+    if (cached) return cached;
+    const built = await buildState(id);
+    if (!built) throw new AppError(404, "shielded pool not found", "not_found");
+    return built;
   };
 
   // Insert the two outputs, mirror their encrypted secrets, mark inputs spent,
@@ -56,11 +85,23 @@ export function shieldedRoutes({ solana }: AppDeps): Router {
     nullifiers: number[][]
   ): Promise<{ leafIndexStart: number; root: string }> {
     const leafIndexStart = pool.commitments.length;
-    commitments.forEach((c, k) => {
-      pool.commitments.push(c);
-      pool.records.push({ commitment: c, encryptedSecret: encryptedSecrets[k], leafIndex: leafIndexStart + k });
-    });
-    for (const nf of nullifiers) pool.spentNullifiers.push(nfKey(nf));
+    const newRecords = commitments.map((c, k) => ({
+      shieldedId: id,
+      commitment: c,
+      encryptedSecret: encryptedSecrets[k],
+      leafIndex: leafIndexStart + k,
+    }));
+    const nfKeys = nullifiers.map(nfKey);
+
+    // Persist first so a crash mid-publish doesn't lose the encrypted notes.
+    await repos.shielded.addRecords(newRecords);
+    await repos.shielded.addNullifiers(id, nfKeys);
+
+    for (const rec of newRecords) {
+      pool.commitments.push(rec.commitment);
+      pool.records.push({ commitment: rec.commitment, encryptedSecret: rec.encryptedSecret, leafIndex: rec.leafIndex });
+    }
+    pool.spentNullifiers.push(...nfKeys);
     pool.root = await computeRoot(pool.commitments);
     await requireAuthority().publishShieldedRoot(id, pool.root);
     return { leafIndexStart, root: pool.root };
@@ -75,7 +116,7 @@ export function shieldedRoutes({ solana }: AppDeps): Router {
       const svc = requireAuthority();
       const id = req.body.shieldedId as number;
       if (await svc.shieldedExists(id)) {
-        if (!pools.has(id)) pools.set(id, { commitments: [], records: [], spentNullifiers: [], root: null });
+        await getPool(id).catch(() => undefined); // cache it for use
         throw new AppError(409, "shielded pool already exists on-chain", "duplicate");
       }
       const signature = await svc.initShielded(id);
@@ -96,7 +137,7 @@ export function shieldedRoutes({ solana }: AppDeps): Router {
     validate({ params: shieldedIdParam }),
     asyncHandler(async (req, res) => {
       const id = Number(req.params.id);
-      const pool = requirePool(id);
+      const pool = await getPool(id);
       res.json({
         shieldedId: id,
         root: pool.root,
@@ -114,7 +155,7 @@ export function shieldedRoutes({ solana }: AppDeps): Router {
     asyncHandler(async (req, res) => {
       requireAuthority();
       const id = Number(req.params.id);
-      const pool = requirePool(id);
+      const pool = await getPool(id);
       const { signature, commitments, encryptedSecrets, nullifiers } = req.body;
 
       if (solana && !(await solana.transactionHitsProgram(signature))) {
@@ -134,7 +175,7 @@ export function shieldedRoutes({ solana }: AppDeps): Router {
         throw new AppError(503, "relayer keypair not configured", "relay_disabled");
       }
       const id = Number(req.params.id);
-      const pool = requirePool(id);
+      const pool = await getPool(id);
       const { proof, extAmount, fee, recipient, outputs } = req.body;
 
       let signature: string;

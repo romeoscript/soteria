@@ -1,6 +1,13 @@
 import { asc, eq, gte, sql } from "drizzle-orm";
 import type { Db } from "../db/client.js";
-import { announcements, members, nullifiers, sets } from "../db/schema.js";
+import {
+  announcements,
+  members,
+  nullifiers,
+  sets,
+  shieldedNullifiers,
+  shieldedRecords,
+} from "../db/schema.js";
 import type {
   Announcement,
   AnnouncementRepo,
@@ -10,6 +17,8 @@ import type {
   NullifierRepo,
   Repositories,
   SetRepo,
+  ShieldedRecord,
+  ShieldedRepo,
 } from "./types.js";
 
 class PgAnnouncementRepo implements AnnouncementRepo {
@@ -106,10 +115,53 @@ class PgNullifierRepo implements NullifierRepo {
   }
 }
 
+class PgShieldedRepo implements ShieldedRepo {
+  constructor(private db: Db) {}
+
+  async addRecords(records: ShieldedRecord[]): Promise<void> {
+    if (records.length === 0) return;
+    await this.db.insert(shieldedRecords).values(records).onConflictDoNothing();
+  }
+
+  async addNullifiers(shieldedId: number, keys: string[]): Promise<void> {
+    if (keys.length === 0) return;
+    await this.db
+      .insert(shieldedNullifiers)
+      .values(keys.map((nullifierKey) => ({ shieldedId, nullifierKey })))
+      .onConflictDoNothing();
+  }
+
+  async load(shieldedId: number): Promise<{ records: ShieldedRecord[]; nullifiers: string[] }> {
+    const recs = await this.db
+      .select({
+        shieldedId: shieldedRecords.shieldedId,
+        leafIndex: shieldedRecords.leafIndex,
+        commitment: shieldedRecords.commitment,
+        encryptedSecret: shieldedRecords.encryptedSecret,
+      })
+      .from(shieldedRecords)
+      .where(eq(shieldedRecords.shieldedId, shieldedId))
+      .orderBy(asc(shieldedRecords.leafIndex));
+    const nfs = await this.db
+      .select({ key: shieldedNullifiers.nullifierKey })
+      .from(shieldedNullifiers)
+      .where(eq(shieldedNullifiers.shieldedId, shieldedId));
+    return { records: recs, nullifiers: nfs.map((n) => n.key) };
+  }
+
+  async listIds(): Promise<number[]> {
+    const rows = await this.db
+      .selectDistinct({ id: shieldedRecords.shieldedId })
+      .from(shieldedRecords);
+    return rows.map((r) => r.id);
+  }
+}
+
 export function buildPostgresRepos(db: Db): Repositories {
   return {
     announcements: new PgAnnouncementRepo(db),
     sets: new PgSetRepo(db),
     nullifiers: new PgNullifierRepo(db),
+    shielded: new PgShieldedRepo(db),
   };
 }

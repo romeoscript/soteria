@@ -7,6 +7,8 @@ import type {
   NullifierRepo,
   Repositories,
   SetRepo,
+  ShieldedRecord,
+  ShieldedRepo,
 } from "./types.js";
 
 class MemoryAnnouncementRepo implements AnnouncementRepo {
@@ -87,10 +89,36 @@ function strip(s: SetState): MemberSet {
   return { id: s.id, groupId: s.groupId, root: s.root, memberCount: s.memberCount };
 }
 
+class MemoryShieldedRepo implements ShieldedRepo {
+  private records = new Map<number, ShieldedRecord[]>();
+  private nullifiers = new Map<number, Set<string>>();
+
+  async addRecords(records: ShieldedRecord[]): Promise<void> {
+    for (const r of records) {
+      const arr = this.records.get(r.shieldedId) ?? [];
+      arr.push(r);
+      this.records.set(r.shieldedId, arr);
+    }
+  }
+  async addNullifiers(shieldedId: number, keys: string[]): Promise<void> {
+    const set = this.nullifiers.get(shieldedId) ?? new Set();
+    for (const k of keys) set.add(k);
+    this.nullifiers.set(shieldedId, set);
+  }
+  async load(shieldedId: number): Promise<{ records: ShieldedRecord[]; nullifiers: string[] }> {
+    const records = [...(this.records.get(shieldedId) ?? [])].sort((a, b) => a.leafIndex - b.leafIndex);
+    return { records, nullifiers: [...(this.nullifiers.get(shieldedId) ?? [])] };
+  }
+  async listIds(): Promise<number[]> {
+    return [...this.records.keys()];
+  }
+}
+
 export function buildMemoryRepos(): Repositories {
   return {
     announcements: new MemoryAnnouncementRepo(),
     sets: new MemorySetRepo(),
     nullifiers: new MemoryNullifierRepo(),
+    shielded: new MemoryShieldedRepo(),
   };
 }

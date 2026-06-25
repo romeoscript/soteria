@@ -53,3 +53,32 @@ export const nullifiers = pgTable("nullifiers", {
   signature: text("signature"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+// ── Hidden-amount shielded pool (Option B) ──
+// Encrypted note secrets are NOT recoverable from chain, so the operator must
+// persist them (with their tree position) to survive restarts.
+export const shieldedRecords = pgTable(
+  "shielded_records",
+  {
+    id: serial("id").primaryKey(),
+    shieldedId: integer("shielded_id").notNull(),
+    leafIndex: integer("leaf_index").notNull(),
+    commitment: text("commitment").notNull(),
+    encryptedSecret: text("encrypted_secret").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("shielded_records_pool_leaf_idx").on(t.shieldedId, t.leafIndex),
+    index("shielded_records_pool_idx").on(t.shieldedId),
+  ]
+);
+
+export const shieldedNullifiers = pgTable(
+  "shielded_nullifiers",
+  {
+    shieldedId: integer("shielded_id").notNull(),
+    nullifierKey: text("nullifier_key").notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("shielded_nullifiers_idx").on(t.shieldedId, t.nullifierKey)]
+);

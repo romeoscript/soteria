@@ -44,8 +44,25 @@ export interface NullifierRepo {
   markSpent(n: Nullifier): Promise<void>;
 }
 
+export interface ShieldedRecord {
+  shieldedId: number;
+  leafIndex: number;
+  commitment: string;
+  encryptedSecret: string;
+}
+
+export interface ShieldedRepo {
+  addRecords(records: ShieldedRecord[]): Promise<void>;
+  addNullifiers(shieldedId: number, keys: string[]): Promise<void>;
+  /** All records (ordered by leafIndex) + spent nullifier keys for one pool. */
+  load(shieldedId: number): Promise<{ records: ShieldedRecord[]; nullifiers: string[] }>;
+  /** Pool ids that have at least one record, for startup rehydration. */
+  listIds(): Promise<number[]>;
+}
+
 export interface Repositories {
   announcements: AnnouncementRepo;
   sets: SetRepo;
   nullifiers: NullifierRepo;
+  shielded: ShieldedRepo;
 }
