@@ -160,6 +160,23 @@ body {
 }
 .field input:focus { border-color: var(--shield); box-shadow: 0 0 0 3px rgba(176, 124, 255, 0.16); }
 
+/* Shared input/textarea used by the payment panels. */
+.input {
+  background: #05060c;
+  border: 1px solid var(--line-2);
+  border-radius: 11px;
+  padding: 12px 14px;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+.input::placeholder { color: var(--faint); }
+.input:focus { border-color: var(--honest); box-shadow: 0 0 0 3px rgba(52, 231, 207, 0.16); }
+.input:read-only { color: var(--muted); }
+
 .act {
   position: relative; cursor: pointer; border: 1px solid transparent; border-radius: 11px; padding: 13px 22px;
   font-family: var(--display); font-weight: 600; font-size: 14px; color: #06120f;
