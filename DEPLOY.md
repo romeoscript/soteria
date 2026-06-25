@@ -65,17 +65,17 @@ withdrawals), which is why Railway over a free-tier-that-sleeps host.
 
 ## 2. Frontend → Vercel
 
-A static Vite build; the SDK is bundled in. `vercel.json` at the repo root
-already sets the build command, output dir, and SPA rewrites.
+A static Vite build. The app pulls **`@soteria1/sdk` from npm** (not the
+workspace), so it deploys as a standalone project — no monorepo build needed.
+`app/vercel.json` sets the framework + SPA rewrites.
 
 ### Steps
 
 1. **Import the project**
    - vercel.com → *Add New… → Project* → import this GitHub repo.
-   - **Root Directory:** leave it as the **repo root** (`./`), NOT `app/`. The
-     build must run from the root so the `@soteria1/sdk` workspace resolves and
-     gets built. (`vercel.json` handles the rest.)
-   - Framework Preset: **Other** (vercel.json overrides it anyway).
+   - **Root Directory: set it to `app`** (this is the key setting — the app builds
+     itself and installs `@soteria1/sdk` from npm).
+   - Framework Preset: **Vite** (auto-detected; `app/vercel.json` confirms it).
 
 2. **Environment variables** (Project → Settings → Environment Variables):
 
@@ -87,15 +87,16 @@ already sets the build command, output dir, and SPA rewrites.
 
    These are **build-time** (Vite inlines them), so redeploy after changing them.
 
-3. **Deploy.** The app serves `transaction.wasm` (2.5 MB) and
-   `transaction_final.zkey` (12 MB) from `app/public` — Vercel handles these fine.
+3. **Deploy.** Vercel runs `npm install` + `npm run build` in `app/`, output `dist`.
+   The app serves `transaction.wasm` (2.5 MB) and `transaction_final.zkey` (12 MB)
+   from `app/public` — Vercel handles these fine.
 
 4. **Wire CORS:** copy the Vercel URL and set it as the backend's `CORS_ORIGINS`
    on Railway, then redeploy the backend.
 
-### What Vercel runs (from `vercel.json`)
-- **build:** `npm install && npm run build:sdk && npm -w @soteria/app run build`
-- **output:** `app/dist`
+> **Note:** because the app uses the *published* SDK, an SDK code change only
+> reaches Vercel after you `npm version` + republish `@soteria1/sdk` and bump the
+> app's dependency. Local dev still uses the live workspace SDK.
 
 ---
 
