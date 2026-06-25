@@ -1,0 +1,4 @@
+# Backend-only build. Scope the install to the server + sdk workspaces so the
+# app's native deps (Ledger -> usb -> node-gyp/Python) are never compiled.
+[phases.install]
+cmds = ["npm install --include-workspace-root -w server -w packages/sdk"]

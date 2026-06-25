@@ -1,0 +1,12 @@
+node_modules
+dist
+.env
+.env.local
+# Circuit artifacts are gitignored repo-wide (*.wasm, *.zkey) but the frontend
+# build needs them — re-include the public/ ones for the Railway upload.
+!public/transaction.wasm
+!public/transaction_final.zkey
+!public/credential.wasm
+!public/credential_final.zkey
+!public/withdraw.wasm
+!public/withdraw_final.zkey

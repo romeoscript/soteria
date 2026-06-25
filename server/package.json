@@ -5,7 +5,7 @@
   "description": "Soteria backend: stealth announcement registry + merkle root publisher + proof relay.",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && mkdir -p dist/idl && cp src/idl/*.json dist/idl/",
     "start": "node dist/index.js",
     "migrate": "tsx src/db/migrate.ts",
     "migrate:prod": "node dist/db/migrate.js",

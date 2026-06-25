@@ -17,7 +17,10 @@
     "anchor:test": "anchor test"
   },
   "overrides": {
-    "@solana/kit": "6.10.0"
+    "@solana/kit": "6.10.0",
+    "rpc-websockets": {
+      "uuid": "^9.0.1"
+    }
   },
   "devDependencies": {
     "@coral-xyz/anchor": "0.30.1",
