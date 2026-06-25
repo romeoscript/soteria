@@ -45,10 +45,4 @@ const total = shielded.balance(mine);
 Proof artifacts (`transaction.wasm`, `transaction_final.zkey`) come from the
 project's trusted setup (`scripts/setup-transaction.sh`); serve them statically.
 
-## ⚠️ Status
-
-Experimental. The ZK circuits are **unaudited** and the trusted setups are
-single-contributor (dev). **Do not use with real funds** without a professional
-audit and a real multi-party ceremony.
-
 MIT licensed.
