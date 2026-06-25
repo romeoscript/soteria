@@ -63,24 +63,39 @@ withdrawals), which is why Railway over a free-tier-that-sleeps host.
 
 ---
 
-## 2. Frontend → Cloudflare Pages (or Vercel)
+## 2. Frontend → Vercel
 
-A static Vite build; the SDK is bundled in.
+A static Vite build; the SDK is bundled in. `vercel.json` at the repo root
+already sets the build command, output dir, and SPA rewrites.
 
-- **Build command:** `npm install && npm run build:sdk && npm -w @soteria/app run build`
-- **Output directory:** `app/dist`
-- **Environment variables (build-time):**
+### Steps
 
-  | Variable | Value |
-  |----------|-------|
-  | `VITE_SOLANA_RPC` | same dedicated RPC as the backend |
-  | `VITE_SOTERIA_SERVER` | your Railway backend URL |
-  | `VITE_SOTERIA_SHIELDED_ID` | the pool id you created above (e.g. `0`) |
+1. **Import the project**
+   - vercel.com → *Add New… → Project* → import this GitHub repo.
+   - **Root Directory:** leave it as the **repo root** (`./`), NOT `app/`. The
+     build must run from the root so the `@soteria1/sdk` workspace resolves and
+     gets built. (`vercel.json` handles the rest.)
+   - Framework Preset: **Other** (vercel.json overrides it anyway).
 
-  The app serves `transaction.wasm` (2.5 MB) and `transaction_final.zkey` (12 MB)
-  from `app/public` — both hosts handle these fine.
+2. **Environment variables** (Project → Settings → Environment Variables):
 
-After deploy, set the backend's `CORS_ORIGINS` to the frontend's final URL.
+   | Variable | Value |
+   |----------|-------|
+   | `VITE_SOLANA_RPC` | same dedicated RPC as the backend (Helius devnet) |
+   | `VITE_SOTERIA_SERVER` | your Railway backend URL (e.g. `https://soteria.up.railway.app`) |
+   | `VITE_SOTERIA_SHIELDED_ID` | the pool id you created (e.g. `0`) |
+
+   These are **build-time** (Vite inlines them), so redeploy after changing them.
+
+3. **Deploy.** The app serves `transaction.wasm` (2.5 MB) and
+   `transaction_final.zkey` (12 MB) from `app/public` — Vercel handles these fine.
+
+4. **Wire CORS:** copy the Vercel URL and set it as the backend's `CORS_ORIGINS`
+   on Railway, then redeploy the backend.
+
+### What Vercel runs (from `vercel.json`)
+- **build:** `npm install && npm run build:sdk && npm -w @soteria/app run build`
+- **output:** `app/dist`
 
 ---
 
