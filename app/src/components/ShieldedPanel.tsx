@@ -26,7 +26,7 @@ const LABELS: Record<Tab, { primary: string; busy: string }> = {
 
 export function ShieldedPanel() {
   const { connection } = useConnection();
-  const { publicKey, sendTransaction, signMessage } = useWallet();
+  const { publicKey, signTransaction, signMessage } = useWallet();
   const [tab, setTab] = useState<Tab>("deposit");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +70,8 @@ export function ShieldedPanel() {
     const amt = toLamports(amount);
     run(async (ident) => {
       if (tab === "deposit") {
-        const r = await deposit({ connection, wallet: publicKey, sendTransaction, id: ident, amount: amt });
+        if (!signTransaction) throw new Error("This wallet can't sign transactions.");
+        const r = await deposit({ connection, wallet: publicKey, signTransaction, id: ident, amount: amt });
         return `Deposited — tx ${short(r.signature, 8)}`;
       }
       if (tab === "pay") {

@@ -84,15 +84,17 @@ function selectInputs(notes: OwnedNote[], target: bigint): OwnedNote[] {
   return picked;
 }
 
-/** Deposit any amount (wallet-signed: the depositor funds the vault). */
+/** Deposit any amount (wallet-signed: the depositor funds the vault).
+ *  The wallet only SIGNS; we broadcast via our own devnet connection, so a
+ *  wallet whose network/RPC differs (Phantom's "Internal error") can't break it. */
 export async function deposit(opts: {
   connection: Connection;
   wallet: PublicKey;
-  sendTransaction: (tx: Transaction, c: Connection) => Promise<string>;
+  signTransaction: (tx: Transaction) => Promise<Transaction>;
   id: Identity;
   amount: bigint;
 }): Promise<{ signature: string }> {
-  const { connection, wallet, sendTransaction, id, amount } = opts;
+  const { connection, wallet, signTransaction, id, amount } = opts;
   const st = await fetchState();
   const root = st.root ? BigInt(st.root) : 0n;
 
@@ -108,9 +110,11 @@ export async function deposit(opts: {
   });
   const transaction = new Transaction().add(CU, ix);
   transaction.feePayer = wallet;
-  transaction.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
-  const signature = await sendTransaction(transaction, connection);
-  await connection.confirmTransaction(signature, "confirmed");
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+  transaction.recentBlockhash = blockhash;
+  const signed = await signTransaction(transaction);
+  const signature = await connection.sendRawTransaction(signed.serialize());
+  await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
 
   await post(`/shielded/${SHIELDED_ID}/deposit-notify`, {
     signature,
