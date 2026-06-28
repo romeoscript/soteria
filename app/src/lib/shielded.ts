@@ -84,6 +84,21 @@ function selectInputs(notes: OwnedNote[], target: bigint): OwnedNote[] {
   return picked;
 }
 
+// The Shielded account's current published root, read straight from chain.
+// Layout after the 8-byte discriminator: authority(32) shielded_id(8) depth(1)
+// num_commitments(8) root_count(8 @57) current_root_index(4 @65) roots(32×32 @69).
+async function currentOnchainRoot(connection: Connection): Promise<bigint> {
+  const info = await connection.getAccountInfo(shielded.shieldedPda(SHIELDED_ID));
+  if (!info) return 0n;
+  const d = info.data;
+  const rootCount = d.readBigUInt64LE(57);
+  if (rootCount === 0n) return 0n;
+  const off = 69 + d.readUInt32LE(65) * 32;
+  let v = 0n;
+  for (let i = 0; i < 32; i++) v = (v << 8n) | BigInt(d[off + i]);
+  return v;
+}
+
 /** Deposit any amount (wallet-signed: the depositor funds the vault).
  *  The wallet only SIGNS; we broadcast via our own devnet connection, so a
  *  wallet whose network/RPC differs (Phantom's "Internal error") can't break it. */
@@ -95,8 +110,11 @@ export async function deposit(opts: {
   amount: bigint;
 }): Promise<{ signature: string }> {
   const { connection, wallet, signTransaction, id, amount } = opts;
-  const st = await fetchState();
-  const root = st.root ? BigInt(st.root) : 0n;
+  // Use the CURRENT published root from chain (deposits have only dummy inputs,
+  // so the root isn't checked by the circuit — only that it's a known on-chain
+  // root). Reading it from chain makes deposits work even if the operator's
+  // mirror is stale or empty.
+  const root = await currentOnchainRoot(connection);
 
   const tx = await shielded.buildTransaction({
     inputs: [],
