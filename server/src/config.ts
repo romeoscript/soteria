@@ -9,6 +9,14 @@ const envBool = (def: boolean) =>
     z.boolean()
   );
 
+// Railway (and other platforms) often inject env vars as empty strings rather
+// than leaving them unset. Zod's .default() only fires on `undefined`, so an
+// empty string would bypass the default and fail validation. Strip empty
+// strings to `undefined` so defaults and .optional() behave as intended.
+const stripped = Object.fromEntries(
+  Object.entries(process.env).map(([k, v]) => [k, v === "" ? undefined : v])
+);
+
 const schema = z.object({
   NODE_ENV: z.enum(["development", "production", "test"]).default("development"),
   HOST: z.string().default("127.0.0.1"),
@@ -43,7 +51,7 @@ const schema = z.object({
   AUTHORITY_SECRET_KEY: z.string().optional(),
 });
 
-const parsed = schema.safeParse(process.env);
+const parsed = schema.safeParse(stripped);
 if (!parsed.success) {
   // eslint-disable-next-line no-console
   console.error("Invalid environment:", parsed.error.flatten().fieldErrors);
