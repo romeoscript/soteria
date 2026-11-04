@@ -60,7 +60,7 @@ at build time — change them, then **redeploy** (not just restart).
 ```bash
 curl -X POST https://api.soteriaprivacy.app/shielded \
   -H "content-type: application/json" -H "x-api-key: $ADMIN_API_KEY" \
-  -d '{"shieldedId":5}'
+  -d '{"shieldedId":6}'
 ```
 
 ## 3. Backups
